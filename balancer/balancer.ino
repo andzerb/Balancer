@@ -1,3 +1,16 @@
+/* Taken from reddit comment by creator of 2-axis balancing stick: 
+ * The program runs at 100Hz. This is the basic tasks it performs each cycle for one axis (one motor):
+
+Calculates speed of motor
+Calculates pitch angle of the stick and the speed it is moving in that direction
+Calculates desired torque using a PD controller (P and D are two constants you have to set). Desired_torque = P * pitch_angle + D * pitch_speed
+Calculates what voltage to apply to achieve the desired torque (B is a constant found through experimentation of the specific motor). Applied_Voltage = Desired_Torque + B * Motor_Speed
+Command the new voltage to the motors.
+Repeat!
+ */
+
+
+
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "I2Cdev.h"
@@ -91,7 +104,7 @@ void loop() {
   }
   Input = angle;
   myPID.Compute();
-  motorus += Output;
+  motorus += Output*(1 + angle/100.0);
   motor.writeMicroseconds(motorus);
   /*Serial.print(angle); Serial.print(", "); */Serial.println(motorus);
 
