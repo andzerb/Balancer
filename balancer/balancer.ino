@@ -21,7 +21,7 @@ MPU6050 accelgyro;
 
 int motorus = 1500;
 
-float angle = 0;
+double angle = 0;
 
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
@@ -86,7 +86,9 @@ void setup() {
 void loop() {
   // read raw accel/gyro measurements from device
   accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-  angle += (gx/200.0);
+  if(abs(gx) > 1){ //attempts to reduce drift
+    angle += (gx/200.0);
+  }
   Input = angle;
   myPID.Compute();
   motorus += Output;
