@@ -107,5 +107,5 @@ void loop() {
   motorus += Output*(1 + angle/100.0);
   motor.writeMicroseconds(motorus);
   /*Serial.print(angle); Serial.print(", "); */Serial.println(motorus);
-
+  delay(10);
 }
