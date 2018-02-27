@@ -21,11 +21,13 @@ MPU6050 accelgyro;
 
 int motorus = 1500;
 
+float angle = 0;
+
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
 
 double Setpoint, Input, Output;
-double Kp = .02, Ki = .005, Kd = 0;
+double Kp = .1, Ki = 0, Kd = .05;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 
@@ -78,16 +80,17 @@ void setup() {
   myPID.SetOutputLimits(-500, 500);
   myPID.SetMode(AUTOMATIC);
 
-  delay(8000);
+  delay(5000);
 }
 
 void loop() {
   // read raw accel/gyro measurements from device
   accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-  Input = gx;
+  angle += (gx/200.0);
+  Input = angle;
   myPID.Compute();
-  motorus = Output;
+  motorus += Output;
   motor.writeMicroseconds(motorus);
-  Serial.println(motorus);
+  /*Serial.print(angle); Serial.print(", "); */Serial.println(motorus);
 
 }
