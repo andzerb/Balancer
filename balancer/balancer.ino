@@ -1,13 +1,13 @@
-/* Taken from reddit comment by creator of 2-axis balancing stick: 
- * The program runs at 100Hz. This is the basic tasks it performs each cycle for one axis (one motor):
+/* Taken from reddit comment by creator of 2-axis balancing stick:
+   The program runs at 100Hz. This is the basic tasks it performs each cycle for one axis (one motor):
 
-Calculates speed of motor
-Calculates pitch angle of the stick and the speed it is moving in that direction
-Calculates desired torque using a PD controller (P and D are two constants you have to set). Desired_torque = P * pitch_angle + D * pitch_speed
-Calculates what voltage to apply to achieve the desired torque (B is a constant found through experimentation of the specific motor). Applied_Voltage = Desired_Torque + B * Motor_Speed
-Command the new voltage to the motors.
-Repeat!
- */
+  Calculates speed of motor
+  Calculates pitch angle of the stick and the speed it is moving in that direction
+  Calculates desired torque using a PD controller (P and D are two constants you have to set). Desired_torque = P * pitch_angle + D * pitch_speed
+  Calculates what voltage to apply to achieve the desired torque (B is a constant found through experimentation of the specific motor). Applied_Voltage = Desired_Torque + B * Motor_Speed
+  Command the new voltage to the motors.
+  Repeat!
+*/
 
 
 
@@ -17,6 +17,8 @@ Repeat!
 #include "MPU6050.h"
 #include <PID_v1.h>
 #include <Servo.h>
+#define CONVERSIONG 3.9  // convert the raw readings to the g unit (1g = 9.8 m/s²) depends on sensor settings
+
 
 Servo motor;
 
@@ -38,9 +40,10 @@ double angle = 0;
 
 int16_t ax, ay, az;
 int16_t gx, gy, gz;
+int lastgy = 0;
 
 double Setpoint, Input, Output;
-double Kp = .1, Ki = 0, Kd = .05;
+double Kp = .02, Ki = 0, Kd = .02;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 
@@ -78,7 +81,7 @@ void setup() {
   Serial.print(accelgyro.getZGyroOffset()); Serial.print("\t"); // 0
   Serial.print("\n");
   accelgyro.setXGyroOffset(200);
-  accelgyro.setYGyroOffset(135);
+  accelgyro.setYGyroOffset(30);
   accelgyro.setZGyroOffset(-81);
   Serial.print(accelgyro.getXAccelOffset()); Serial.print("\t"); // -76
   Serial.print(accelgyro.getYAccelOffset()); Serial.print("\t"); // -2359
@@ -93,19 +96,34 @@ void setup() {
   myPID.SetOutputLimits(-500, 500);
   myPID.SetMode(AUTOMATIC);
 
-  delay(5000);
+  delay(1000);
 }
 
 void loop() {
   // read raw accel/gyro measurements from device
   accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-  if(abs(gx) > 1){ //attempts to reduce drift
-    angle += (gx/200.0);
-  }
-  Input = angle;
+  //  int testus = -(gy/abs(gy))*250;
+  //  if(abs(gy) > 100 && motorus + testus <= 1750 && motorus + testus >= 1250){ //attempts to reduce drift
+  //    motorus +=testus;
+  //  }
+  //  motor.writeMicroseconds(motorus);
+  Input = (gy + lastgy) / 2.0;
+  lastgy = gy;
   myPID.Compute();
-  motorus += Output*(1 + angle/100.0);
-  motor.writeMicroseconds(motorus);
-  /*Serial.print(angle); Serial.print(", "); */Serial.println(motorus);
+  //Output *=-1;
+  if (motorus - Output > 1000 && motorus - Output < 2000) {
+    motorus -= Output;
+    motor.writeMicroseconds(motorus);
+  }
+  //Serial.print(Input); Serial.print(", "); Serial.print(gy); Serial.print(", "); Serial.print(Output); Serial.print(", "); Serial.println(motorus);
+float accelerationX = (int16_t)(ax * CONVERSIONG);
+float accelerationY = (int16_t)(ay * CONVERSIONG);
+float accelerationZ = (int16_t)(az * CONVERSIONG);
+float pitch = 180 * atan (accelerationX/sqrt(accelerationY*accelerationY + accelerationZ*accelerationZ))/M_PI;
+float roll = 180 * atan (accelerationY/sqrt(accelerationX*accelerationX + accelerationZ*accelerationZ))/M_PI;
+float yaw = 180 * atan (accelerationZ/sqrt(accelerationX*accelerationX + accelerationZ*accelerationZ))/M_PI;
+
+  Serial.print(ax); Serial.print(", "); Serial.print(ay); Serial.print(", "); Serial.println(az);
+  //Serial.print(pitch); Serial.print(", "); Serial.print(roll); Serial.print(", "); Serial.println(yaw);
   delay(10);
 }
